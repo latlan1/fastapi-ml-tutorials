@@ -1,40 +1,92 @@
 # ml-engineer-challenge
 
-Welcome! The following challenge is to evaluate your strengths as a machine learning engineer. The expectation is not that you would finish all of this, but represents all of the sorts of problems you might expect at Penn Interactive. You should limit the exercise to no more than a few hours. When you're finished put your code in a VCS of your choice.
+# Why FastAPI
 
-## Problem Statement
+I chose FastAPI because it is the state of art for deploying ML models and provides more features than Flask.
+It provide high performance APIs that scale in production environments. It is popular and has great [documentation](https://fastapi.tiangolo.com/lo/). uvicorn serves the API with its fast ASGI webserver implementation.
 
-We are creating a machine learning API that will predict the price of Bitcion in USD in the next second based on the price from the last 60 seconds. You will find a Jupyter notebook named `bitcoin-predictor.ipynb`. Feel free to add/change anything in that notebook, it's yours to play with (more on that below). This is where all of the data pre-processing and training was done. The goal is to use what is in there to create a RESTful API with a `/predict` endpoint, so that I can send a payload of bitcoin data from the last 60 seconds and return a prediction. There is a file called `predict.py` that will contain the minimal logic to predict from an example at `request.json`; you can use this as your jumping off point.
+Top Features:
 
-You can start with the saved model in HDFS format at `model.h5`.
+- High performance at scale
+- Fast to code with simple syntax
+- Automatic (interactive) documentation generation for every route and can test all endpoints from the browser (got to http://127.0.0.1:8000/redoc or http://localhost:8000/docs)
+- Easy Data parsing of path parameters & validation of string and numeric query parameters
+- Modern typing of variables with pydantic
 
-* For the request, see `request.json`. You'll see that it is a JSON object with the key `bitcoin_last_minute`, which is an array of pricing data, each element of the array represents 1 second. You can assume that the order of the array is in ascending time order, but do not assume that the keys of each element are ordered correctly (though they may be in this specific request), so your API should sort the data to conform to the features matrix you see in training.
-* Where the API lives is not important, it can be a docker container, hosted on AWS, GCP, Heroku, etc. so long as you can `POST` to `/predict` using `request.json` and the return response should look like the example in `response.json`. You can add anything else you want to the response payload, but it must have a `"bitcoin_prediction"` key. **NOTE: The prediction in the response example is just made up, you don't have to match this exact number.**
+FastAPI handles all HTTP request methods or operations:
 
-## Extra Considerations
+- POST: Create a new resource; most common approach for sending data
+- GET: Retrieve an existing resource (read-only)
+- PUT: updates exsiting resource(s)
+- DELETE: Delete a resource
+- PATCH: Partially update an existing resource
+- OPTIONS
+- HEAD
+- TRACE
 
-We have a service up and running in `production`. Now it's time to iterate on this. Pick as many of the following tasks you'd like to tackle and include them in the work you've done so far. There are a number of questions sprinkled in the jupyter notebook and the `predict.py` that you could also tackle.
+## Questions
 
-* How do we write good tests (unit, integration) for this machine learning service?
-* Can we add an endpoint just to check that the API is up?
-* The model is up and running. How do we know if it's being used?
-* How often does it error out? How many 5xx? How many 4xx?
-* How accurate is the model? We can see how accurate the training and validation sets are, but can we include an endpoint to measure how accurate it was in the last 60 seconds?
-* What version is the API on and how do we know? Is this the same as the model version? Do we need both?
-* The jupyter notebook is a nice format for quick work, but we don't want to have to run this on our laptop each time we train. Can you create a job for it to run in a different compute environment?
-* Can you make the model more accurate? Some things you could consider:
-  * Is the neural network architecture correct?
-  * Is a different model appropriate?
-  * Do we have the right loss metric?
-  * Do we have the right optimizer?
-  * Do we have the right feature set? More features? Less features? Better features?
-  * Do we need to go longer than a 60 second lookback? Shorter?
-  * Is there any scaling or preprocessing we're missing?
-* Once we've trained it in batch several times and we're comfortable with the stability of the model we've chosen, we'll want to be able to train online. Can you create a `/train` endpoint where we can send data to retrain the model.
-* How many concurrent executions is this API capable of handling? Is it thread safe? If we have a `/train` endpoint and a `/predict` endpoint will they collide? If we train and predict at the same time, which version of the model is the prediction coming from?
-* Tensorflow throws a lot of Future warnings and CPU warnings at runtime. Can we fix the code so these warnings go away?
+- How do you use query parameters?
+  FastAPI automatically treats the part of the endpoint which is not a path parameter as a query string and parses it into parameters and its values.
 
+# FastAPI Examples
 
-## Note on Dependencies
+Below are some examples of APIs deployed using FastAPI. All are ready to run locally but could be packaged with Docker to make the API more portable so it can securely run on any platform. We could build a Docker image with the code and dependencies so that it can run in an isolated environment.You can use docker-compose to manage multiple containers and then deploy to serverless compute on AWS.
 
-Feel free to install dependencies however you wish (docker, pyenv, conda, etc.). This model was trained in a conda virtual environment, and you can find all of the details in the `spec-file.txt` (the output of `conda list`) file or the explicit packages in `spec-file-explicit.txt` (the output of `conda list --explicit`). You may upgrade/downgrade dependencies as you see fit, as long as it doesn't effect the solution.
+## Example: Bitcoin Price Predictor
+
+This API (saved in api.py) has:
+
+- GET method for indicating that the API is running
+- POST method with /predict path for recieving input and estimating the price of Bitcoin
+
+- Can we add an endpoint just to check that the API is up?
+  Yes, the root endpoint should deliver a status message when the API is up.
+
+We could have used async functions when creating the FastAPI predict route to enable running multiple operations in parallel and without blocking each other.
+
+We created a Docker image for deploying the model.
+
+### Next Steps
+
+As a next step, we could deploy the Dockerized FastAPI appication to Docker Compose or a Kubernetes Cluster and use the Minikube/Kubernetes dashboard to visualize the deployment. Monitoring of the container can be done using Prometheus, Grafana/cadvisor to manage and visualize the performance of the containers.
+
+We could also add a train endpoint to recieve new data and automatically re-train the model. We would use async functions to avoid collisions with the predict endpoint.
+
+## Example: Online Market Cafe CRUD App
+
+We created a CRUD app for an online cafe that is integrated with a sqlite database via sqlalchemy. We chose to use SQLAlchemy as the interface between Python and the database instead of directly using the sqlite driver. Using the Object Relational Mapper creates opportunity to interface with other dialects such as MySQL, Postgres, etc. with ease.
+
+See toy_item_example.py for a comprehensive example of API that creates, lists and updates items. It defines routes for the following HTTP methods:
+
+- GET
+- POST
+- PUT
+- DELETE
+
+You must use orm_mode=True in the config class to indicate that it is mapped with the ORM class of SQLAlchemy.
+
+## Example: Named Entity Recognition with Spacy API
+
+This API will detect named entities in input text and redact the information using Spacy models.
+
+This API will have:
+
+- POST route on the path '/entities' that will accept a request body containing text, model_size and model_language and will return a list of extracted entities from text and anonymized_text with the entities redacted.
+
+### Next Topics to Explore
+
+- Asynchronous requests to a database service
+- Unit test with Github Actions that is automatically triggered on commits to main branch
+- Add logging of HTTP status codes
+
+### Resources
+
+1. [FastAPI + Docker](https://towardsdatascience.com/how-to-deploy-a-machine-learning-model-with-fastapi-docker-and-github-actions-13374cbd638a)
+2. [FastAPI + Sentiment ML API](https://towardsdatascience.com/step-by-step-approach-to-build-your-machine-learning-api-using-fast-api-21bd32f2bbdb)
+3. [FastAPI + Docker 2](https://engineering.rappi.com/using-fastapi-to-deploy-machine-learning-models-cd5ed7219ea)
+4. [FastAPI + Kubernetes](https://www.section.io/engineering-education/how-to-create-a-machine-learning-app-using-the-fastapi-and-deploying-it-to-the-kubernetes-cluster/)
+5. [Building a microservice with FastAPI](https://developer.nvidia.com/blog/building-a-machine-learning-microservice-with-fastapi/)
+6. [FastAPI + SQL Databases](https://www.tutorialspoint.com/fastapi/fastapi_sql_databases.htm)
+7. [FastAPI + sqlalchemy](https://codingnomads.co/blog/python-fastapi-tutorial)
+8. [FastAPI + Tutorialpoint](https://www.tutorialspoint.com/fastapi/fastapi_query_parameters.htm)
